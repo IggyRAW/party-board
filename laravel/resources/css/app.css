@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.vue';
+
+html,
+body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+*:hover {
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+:root {
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --indigo-light: #a5b4fc;
+    --surface: #0f0f13;
+    --surface-2: #18181f;
+    --surface-3: #22222d;
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-subtle: rgba(255, 255, 255, 0.6);
+    --text-faint: rgba(255, 255, 255, 0.35);
+    --text-disabled: rgba(255, 255, 255, 0.25);
+    --on-accent: #ffffff;
+    --overlay: rgba(255, 255, 255, 0.07);
+    --overlay-border: rgba(255, 255, 255, 0.1);
+    --won-fill: rgba(255, 255, 255, 0.04);
+    --danger: rgba(255, 100, 100, 0.9);
+    --scrim: rgba(10, 10, 15, 0.96);
+    --wheel-hub: #0f0f13;
+    --wheel-empty: #22222d;
+    --wheel-line: #0f0f13;
+    --wheel-ink: #14141c;
+    --wheel-palette: #6366f1, #8b5cf6, #a78bfa, #7c3aed, #4f46e5, #818cf8, #6d28d9, #c4b5fd;
+}
+
+html[data-theme='bright'] {
+    --indigo: #4f46e5;
+    --indigo-dark: #4338ca;
+    --indigo-light: #4338ca;
+    --surface: #f3f4f8;
+    --surface-2: #ffffff;
+    --surface-3: #e8eaf2;
+    --border: rgba(26, 26, 36, 0.12);
+    --text: #1a1a24;
+    --text-muted: rgba(26, 26, 36, 0.66);
+    --text-subtle: rgba(26, 26, 36, 0.72);
+    --text-faint: rgba(26, 26, 36, 0.5);
+    --text-disabled: rgba(26, 26, 36, 0.38);
+    --overlay: rgba(26, 26, 36, 0.06);
+    --overlay-border: rgba(26, 26, 36, 0.12);
+    --won-fill: rgba(26, 26, 36, 0.04);
+    --scrim: rgba(243, 244, 248, 0.96);
+    --wheel-hub: #ffffff;
+    --wheel-empty: #e8eaf2;
+    --wheel-line: #ffffff;
+    /* 明転時は投影しても潰れないよう、白背景と差がつく濃い色だけを使う */
+    --wheel-palette: #4338ca, #7e22ce, #1d4ed8, #a21caf, #4f46e5, #5b21b6, #2563eb, #c026d3;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-faint);
+}
+
+/* iOS Safari は font-size が 16px 未満の入力欄にフォーカスすると自動でズームするため、
+   タッチデバイスでは 16px を下限にしてズームを抑止する（レイヤー外なので Tailwind の text-* より優先される） */
+@media (pointer: coarse) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Outfit', sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+}

@@ -1,0 +1,65 @@
+services:
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ./laravel:/var/www/html
+      - laravel_vendor:/var/www/html/vendor
+    ports:
+      - "0.0.0.0:8000:8000"
+    environment:
+      APP_NAME: Party Board
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+      APP_LOCALE: ja
+      APP_FALLBACK_LOCALE: ja
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: party_board
+      DB_USERNAME: party
+      DB_PASSWORD: secret
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      ROULETTE_FINALE_PRIZE_LIMIT: "5"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+  vite:
+    image: node:22-alpine
+    working_dir: /var/www/html
+    volumes:
+      - ./laravel:/var/www/html
+      - vite_node_modules:/var/www/html/node_modules
+    ports:
+      - "0.0.0.0:5174:5174"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5174"
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: party_board
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_USER: party
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  mysql_data:
+  laravel_vendor:
+  vite_node_modules:
