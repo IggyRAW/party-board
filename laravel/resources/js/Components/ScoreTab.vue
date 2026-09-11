@@ -463,44 +463,42 @@ function onSelectTeam(team) {
             </Card>
 
             <Card title="ランキング">
-                <template #action>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <div class="flex flex-wrap gap-1">
-                            <button
-                                type="button"
-                                class="rounded-full px-2.5 py-1 text-xs transition-colors"
-                                :style="{
-                                    background: filterGame === 'all' ? 'var(--indigo)' : 'var(--surface-3)',
-                                    color: filterGame === 'all' ? 'var(--on-accent)' : 'var(--text-muted)',
-                                }"
-                                @click="filterGame = 'all'"
-                            >
-                                すべて
-                            </button>
-                            <button
-                                v-for="game in games"
-                                :key="game.id"
-                                type="button"
-                                class="rounded-full px-2.5 py-1 text-xs transition-colors"
-                                :style="{
-                                    background: filterGame === game.id ? 'var(--indigo)' : 'var(--surface-3)',
-                                    color: filterGame === game.id ? 'var(--on-accent)' : 'var(--text-muted)',
-                                }"
-                                @click="filterGame = game.id"
-                            >
-                                {{ game.name }}
-                            </button>
-                        </div>
+                <div class="mb-4 flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap gap-1">
                         <button
                             type="button"
-                            class="rounded-lg px-3 py-1 text-xs"
-                            style="background: rgba(99,102,241,0.15); color: var(--indigo-light); border: 1px solid rgba(99,102,241,0.3)"
-                            @click="exportScores"
+                            class="rounded-full px-2.5 py-1 text-xs transition-colors"
+                            :style="{
+                                background: filterGame === 'all' ? 'var(--indigo)' : 'var(--surface-3)',
+                                color: filterGame === 'all' ? 'var(--on-accent)' : 'var(--text-muted)',
+                            }"
+                            @click="filterGame = 'all'"
                         >
-                            ↓ エクスポート
+                            すべて
+                        </button>
+                        <button
+                            v-for="game in games"
+                            :key="game.id"
+                            type="button"
+                            class="rounded-full px-2.5 py-1 text-xs transition-colors"
+                            :style="{
+                                background: filterGame === game.id ? 'var(--indigo)' : 'var(--surface-3)',
+                                color: filterGame === game.id ? 'var(--on-accent)' : 'var(--text-muted)',
+                            }"
+                            @click="filterGame = game.id"
+                        >
+                            {{ game.name }}
                         </button>
                     </div>
-                </template>
+                    <button
+                        type="button"
+                        class="rounded-lg px-3 py-1 text-xs"
+                        style="background: rgba(99,102,241,0.15); color: var(--indigo-light); border: 1px solid rgba(99,102,241,0.3)"
+                        @click="exportScores"
+                    >
+                        ↓ エクスポート
+                    </button>
+                </div>
 
                 <EmptyState v-if="rankingEntries().length === 0" text="まだスコアがありません" />
                 <div v-else class="flex flex-col gap-2">

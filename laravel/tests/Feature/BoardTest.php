@@ -17,6 +17,13 @@ class BoardTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withSession(['board_authenticated' => true]);
+    }
+
     public function test_board_page_renders(): void
     {
         $this->assertSame('sqlite', config('database.default'));

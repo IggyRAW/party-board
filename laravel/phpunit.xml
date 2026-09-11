@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="BOARD_LOGIN_ID" value="party"/>
+        <env name="BOARD_LOGIN_PASSWORD" value="board"/>
     </php>
 </phpunit>

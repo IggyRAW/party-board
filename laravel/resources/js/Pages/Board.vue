@@ -267,6 +267,20 @@ onBeforeUnmount(() => {
                     <button
                         type="button"
                         class="rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 sm:text-sm"
+                        title="ログアウト"
+                        :style="{
+                            fontFamily: 'Outfit, sans-serif',
+                            background: 'var(--surface-3)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border)',
+                        }"
+                        @click="router.post('/logout')"
+                    >
+                        ログアウト
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 sm:text-sm"
                         :title="theme === 'bright' ? '暗転（会場向け）' : '明転（プロジェクター向け）'"
                         :style="{
                             fontFamily: 'Outfit, sans-serif',

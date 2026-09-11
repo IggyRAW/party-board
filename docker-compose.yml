@@ -26,6 +26,8 @@ services:
       CACHE_STORE: database
       QUEUE_CONNECTION: database
       ROULETTE_FINALE_PRIZE_LIMIT: "5"
+      BOARD_LOGIN_ID: party
+      BOARD_LOGIN_PASSWORD: board
     depends_on:
       db:
         condition: service_healthy
