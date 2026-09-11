@@ -33,11 +33,10 @@ class ExportController extends Controller
 
         foreach ($games as $game) {
             $lines[] = "── {$game->name} ──";
-            $gameTeams = $teams->where('game_id', $game->id);
 
-            foreach ($gameTeams as $team) {
+            foreach ($teams as $team) {
                 $lines[] = "  {$team->name}";
-                $teamEntries = $entries->where('team_id', $team->id);
+                $teamEntries = $entries->where('team_id', $team->id)->where('game_id', $game->id);
 
                 foreach ($teamEntries as $entry) {
                     $lines[] = '    '.$entry->label.'  '.number_format($entry->score).'点';
@@ -122,12 +121,12 @@ class ExportController extends Controller
 
         $gameId = (int) $filterGame;
         $game = $games->firstWhere('id', $gameId);
-        $relevant = $teams->where('game_id', $gameId)
-            ->map(function (Team $team) use ($entries, $game) {
+        $relevant = $teams
+            ->map(function (Team $team) use ($entries, $game, $gameId) {
                 return [
                     'name' => $team->name,
                     'game' => $game?->name ?? '',
-                    'total' => $entries->where('team_id', $team->id)->sum('score'),
+                    'total' => $entries->where('team_id', $team->id)->where('game_id', $gameId)->sum('score'),
                 ];
             })
             ->sortByDesc('total')

@@ -63,42 +63,29 @@ function sanitizeScore(value) {
 const selectedGame = () => props.games.find((game) => game.id === props.selectedGameId) ?? null;
 const selectedTeam = () => props.teams.find((team) => team.id === props.selectedTeamId) ?? null;
 
-function teamsForSelectedGame() {
-    return props.teams.filter((team) => team.gameId === props.selectedGameId);
-}
-
 function teamEntriesForSelected() {
-    return props.scoreEntries.filter((entry) => entry.teamId === props.selectedTeamId);
+    return props.scoreEntries.filter(
+        (entry) => entry.teamId === props.selectedTeamId && entry.gameId === props.selectedGameId,
+    );
 }
 
-function teamTotal(teamId) {
+function teamTotal(teamId, gameId = props.selectedGameId) {
     return props.scoreEntries
-        .filter((entry) => entry.teamId === teamId)
+        .filter((entry) => entry.teamId === teamId && (gameId === null || entry.gameId === gameId))
         .reduce((sum, entry) => sum + entry.score, 0);
 }
 
 function rankingEntries() {
-    if (filterGame.value === 'all') {
-        const nameMap = new Map();
-        props.teams.forEach((team) => {
-            nameMap.set(team.name, (nameMap.get(team.name) ?? 0) + teamTotal(team.id));
-        });
-
-        return Array.from(nameMap.entries())
-            .map(([name, total]) => ({ teamName: name, gameName: '', total }))
-            .sort((a, b) => b.total - a.total)
-            .map((row, index) => ({ ...row, rank: index + 1 }));
-    }
-
     return props.teams
-        .filter((team) => team.gameId === filterGame.value)
         .map((team) => {
-            const game = props.games.find((item) => item.id === team.gameId);
+            const game = filterGame.value === 'all'
+                ? null
+                : props.games.find((item) => item.id === filterGame.value);
 
             return {
                 teamName: team.name,
                 gameName: game?.name ?? '',
-                total: teamTotal(team.id),
+                total: teamTotal(team.id, filterGame.value === 'all' ? null : filterGame.value),
             };
         })
         .sort((a, b) => b.total - a.total)
@@ -128,13 +115,15 @@ function deleteGame(game, event) {
 }
 
 function addTeam() {
-    if (!teamInput.value.trim() || props.selectedGameId === null) {
+    const name = teamInput.value.trim();
+
+    if (!name || props.teams.some((team) => team.name === name)) {
         return;
     }
 
     router.post(
         '/teams',
-        { game_id: props.selectedGameId, name: teamInput.value.trim() },
+        { name },
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -160,7 +149,7 @@ function deleteTeam(team, event) {
 }
 
 function addScore() {
-    if (!canAddScore.value || props.selectedTeamId === null) {
+    if (!canAddScore.value || props.selectedTeamId === null || props.selectedGameId === null) {
         return;
     }
 
@@ -168,6 +157,7 @@ function addScore() {
         '/score-entries',
         {
             team_id: props.selectedTeamId,
+            game_id: props.selectedGameId,
             score: Number(scoreInput.value),
             label: scoreLabelInput.value.trim() || null,
         },
@@ -228,7 +218,6 @@ function exportScores() {
 
 function onSelectGame(game) {
     emit('select-game', game.id);
-    emit('select-team', null);
 }
 
 function onSelectTeam(team) {
@@ -286,7 +275,7 @@ function onSelectTeam(team) {
                 </div>
             </Card>
 
-            <Card v-if="selectedGameId !== null" :title="`チーム — ${selectedGame()?.name ?? ''}`">
+            <Card title="チーム">
                 <div class="mb-3 flex min-w-0 gap-2">
                     <input
                         v-model="teamInput"
@@ -307,7 +296,7 @@ function onSelectTeam(team) {
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <div
-                        v-for="team in teamsForSelectedGame()"
+                        v-for="team in teams"
                         :key="team.id"
                         class="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 transition-colors"
                         :style="{
@@ -358,7 +347,7 @@ function onSelectTeam(team) {
         </div>
 
         <div class="flex flex-col gap-5">
-            <Card v-if="selectedTeam()" :title="`スコア — ${selectedGame()?.name ?? ''} / ${selectedTeam()?.name ?? ''}`">
+            <Card v-if="selectedGame() && selectedTeam()" :title="`スコア — ${selectedGame()?.name ?? ''} / ${selectedTeam()?.name ?? ''}`">
                 <div class="mb-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                     <input
                         v-model="scoreLabelInput"

@@ -18,9 +18,9 @@ const props = defineProps({
 
 const canvasRef = ref(null);
 const fallbackPalette = ['#6366f1', '#8b5cf6', '#a78bfa', '#7c3aed', '#4f46e5', '#818cf8', '#6d28d9', '#c4b5fd'];
-// 中心ハブに文字が被らないよう、ラベル開始位置を中心から固定距離だけ離す
-const labelGapFromCenter = 60;
-const labelOuterInset = 14;
+// 中心ハブに文字が被らないよう、ラベルの内側端はハブから離す
+const labelGapFromCenter = 80;
+const labelOuterInset = 10;
 // 白文字と濃い文字の contrast ratio が入れ替わる相対輝度
 const labelInkThreshold = 0.2;
 
@@ -157,14 +157,15 @@ function draw() {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(start + slice / 2);
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = labelColor(sliceColor, theme);
         const fontSize = Math.min(props.size > 300 ? 15 : 13, (radius * 0.5) / props.items.length + 8);
         ctx.font = `bold ${fontSize}px Inter`;
         const innerOffset = Math.max(labelGapFromCenter, hubRadius.value + 12);
-        const labelMaxWidth = radius - labelOuterInset - innerOffset;
-        ctx.fillText(fitLabel(ctx, item, labelMaxWidth), innerOffset, 0);
+        const outerOffset = radius - labelOuterInset;
+        const labelMaxWidth = outerOffset - innerOffset;
+        ctx.fillText(fitLabel(ctx, item, labelMaxWidth), outerOffset, 0);
         ctx.restore();
     });
 

@@ -29,12 +29,12 @@ class BoardState
             'games' => $games,
             'teams' => Team::query()->orderBy('id')->get()->map(fn (Team $team) => [
                 'id' => $team->id,
-                'gameId' => $team->game_id,
                 'name' => $team->name,
             ]),
             'scoreEntries' => ScoreEntry::query()->orderBy('id')->get()->map(fn (ScoreEntry $entry) => [
                 'id' => $entry->id,
                 'teamId' => $entry->team_id,
+                'gameId' => $entry->game_id,
                 'score' => $entry->score,
                 'label' => $entry->label,
                 'timestamp' => $entry->scored_at?->timezone('Asia/Tokyo')->format('m/d H:i') ?? '',

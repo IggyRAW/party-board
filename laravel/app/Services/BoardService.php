@@ -23,26 +23,36 @@ class BoardService
     {
         return DB::transaction(function () use ($name) {
             $game = Game::query()->create(['name' => $name]);
+            $teams = Team::query()->orderBy('id')->get();
 
-            foreach (self::DEFAULT_TEAM_NAMES as $teamName) {
-                $this->createTeam($game, $teamName);
+            if ($teams->isEmpty()) {
+                foreach (self::DEFAULT_TEAM_NAMES as $teamName) {
+                    $this->createTeam($teamName);
+                }
+            } else {
+                foreach ($teams as $team) {
+                    $this->seedDefaultEntries($team, $game);
+                }
             }
 
             return $game->refresh();
         });
     }
 
-    public function createTeam(Game $game, string $name): Team
+    public function createTeam(string $name): Team
     {
-        return DB::transaction(function () use ($game, $name) {
-            $team = $game->teams()->create(['name' => $name]);
-            $this->seedDefaultEntries($team);
+        return DB::transaction(function () use ($name) {
+            $team = Team::query()->create(['name' => $name]);
+
+            foreach (Game::query()->orderBy('id')->get() as $game) {
+                $this->seedDefaultEntries($team, $game);
+            }
 
             return $team;
         });
     }
 
-    public function seedDefaultEntries(Team $team): void
+    public function seedDefaultEntries(Team $team, Game $game): void
     {
         $now = now();
         $rows = [];
@@ -50,6 +60,7 @@ class BoardService
         for ($i = 1; $i <= self::DEFAULT_ENTRY_COUNT; $i++) {
             $rows[] = [
                 'team_id' => $team->id,
+                'game_id' => $game->id,
                 'score' => 0,
                 'label' => 'Q'.$i,
                 'scored_at' => null,

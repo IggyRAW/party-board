@@ -11,8 +11,8 @@ class Game extends Model
         'name',
     ];
 
-    public function teams(): HasMany
+    public function scoreEntries(): HasMany
     {
-        return $this->hasMany(Team::class);
+        return $this->hasMany(ScoreEntry::class);
     }
 }

@@ -62,11 +62,39 @@ class BoardTest extends TestCase
 
         $game = Game::query()->firstOrFail();
         $this->assertSame('クイズバトル', $game->name);
-        $this->assertSame(5, $game->teams()->count());
+        $this->assertSame(5, Team::query()->count());
         $this->assertSame(50, ScoreEntry::query()->count());
+        $this->assertTrue(Team::query()->where('name', 'チームA')->exists());
         $this->assertTrue(
-            $game->teams()->where('name', 'チームA')->exists()
+            ScoreEntry::query()->where('game_id', $game->id)->where('team_id', Team::query()->firstOrFail()->id)->exists()
         );
+    }
+
+    public function test_creating_another_game_reuses_shared_teams(): void
+    {
+        $this->post('/games', ['name' => 'クイズバトル'])->assertRedirect();
+        $this->post('/games', ['name' => 'ビンゴ'])->assertRedirect();
+
+        $this->assertSame(5, Team::query()->count());
+        $this->assertSame(100, ScoreEntry::query()->count());
+        $this->assertSame(2, Game::query()->count());
+        $this->assertSame(
+            50,
+            ScoreEntry::query()->where('game_id', Game::query()->where('name', 'ビンゴ')->value('id'))->count()
+        );
+    }
+
+    public function test_creating_a_team_seeds_entries_for_every_game(): void
+    {
+        $this->post('/games', ['name' => 'クイズバトル'])->assertRedirect();
+        $this->post('/games', ['name' => 'ビンゴ'])->assertRedirect();
+
+        $this->post('/teams', ['name' => 'チームF'])->assertRedirect();
+
+        $team = Team::query()->where('name', 'チームF')->firstOrFail();
+        $this->assertSame(6, Team::query()->count());
+        $this->assertSame(20, $team->scoreEntries()->count());
+        $this->assertSame(2, $team->scoreEntries()->pluck('game_id')->unique()->count());
     }
 
     public function test_team_score_can_be_updated(): void
@@ -82,16 +110,38 @@ class BoardTest extends TestCase
         $this->assertNotNull($entry->fresh()->scored_at);
     }
 
-    public function test_deleting_a_game_cascades_teams_and_entries(): void
+    public function test_team_scores_are_scoped_to_each_game(): void
     {
-        $this->post('/games', ['name' => '削除対象']);
-        $game = Game::query()->firstOrFail();
+        $this->post('/games', ['name' => 'クイズ'])->assertRedirect();
+        $this->post('/games', ['name' => 'ビンゴ'])->assertRedirect();
+
+        $team = Team::query()->where('name', 'チームA')->firstOrFail();
+        $quiz = Game::query()->where('name', 'クイズ')->firstOrFail();
+        $bingo = Game::query()->where('name', 'ビンゴ')->firstOrFail();
+        $quizEntry = $team->scoreEntries()->where('game_id', $quiz->id)->firstOrFail();
+
+        $this->patch('/score-entries/'.$quizEntry->id, ['score' => 80])->assertRedirect();
+
+        $this->assertSame(80, $quizEntry->fresh()->score);
+        $this->assertSame(0, (int) $team->scoreEntries()->where('game_id', $bingo->id)->sum('score'));
+    }
+
+    public function test_deleting_a_game_keeps_shared_teams(): void
+    {
+        $this->post('/games', ['name' => '残すゲーム'])->assertRedirect();
+        $this->post('/games', ['name' => '削除対象'])->assertRedirect();
+
+        $game = Game::query()->where('name', '削除対象')->firstOrFail();
 
         $this->delete('/games/'.$game->id)->assertRedirect();
 
-        $this->assertDatabaseCount('games', 0);
-        $this->assertDatabaseCount('teams', 0);
-        $this->assertDatabaseCount('score_entries', 0);
+        $this->assertDatabaseCount('games', 1);
+        $this->assertDatabaseCount('teams', 5);
+        $this->assertDatabaseCount('score_entries', 50);
+        $this->assertSame(
+            50,
+            ScoreEntry::query()->where('game_id', Game::query()->where('name', '残すゲーム')->value('id'))->count()
+        );
     }
 
     public function test_roulette_spin_marks_prize_and_removes_participant(): void

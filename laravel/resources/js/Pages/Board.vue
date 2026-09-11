@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePoll } from '@inertiajs/vue3';
 import FullscreenRoulette from '../Components/FullscreenRoulette.vue';
 import RouletteTab from '../Components/RouletteTab.vue';
 import ScoreTab from '../Components/ScoreTab.vue';
 
 const THEME_KEY = 'party-board-theme';
+const MOBILE_MEDIA = '(max-width: 767px)';
 const BOARD_POLL_MS = 2000;
 const BOARD_POLL_PROPS = [
     'games',
@@ -32,7 +33,8 @@ const props = defineProps({
 });
 
 const theme = ref(document.documentElement.dataset.theme === 'bright' ? 'bright' : 'dark');
-const currentTab = ref(props.tab === 'roulette' ? 'roulette' : 'score');
+const isMobile = ref(window.matchMedia(MOBILE_MEDIA).matches);
+const currentTab = ref(props.tab === 'roulette' && !isMobile.value ? 'roulette' : 'score');
 const selectedGameId = ref(props.selectedGameId);
 const selectedTeamId = ref(null);
 const spinning = ref(false);
@@ -42,6 +44,7 @@ const rouletteFullscreen = ref(false);
 
 let spinCurrent = 0;
 let rafId = 0;
+let mobileMedia = null;
 
 const { start: startPolling, stop: stopPolling } = usePoll(
     BOARD_POLL_MS,
@@ -67,7 +70,6 @@ watch(
     (value) => {
         if (value) {
             selectedGameId.value = value;
-            selectedTeamId.value = null;
         }
     },
 );
@@ -77,6 +79,14 @@ watch(
     (games) => {
         if (selectedGameId.value && !games.some((game) => game.id === selectedGameId.value)) {
             selectedGameId.value = games[0]?.id ?? null;
+        }
+    },
+);
+
+watch(
+    () => props.teams,
+    (teams) => {
+        if (selectedTeamId.value && !teams.some((team) => team.id === selectedTeamId.value)) {
             selectedTeamId.value = null;
         }
     },
@@ -126,8 +136,27 @@ function toggleTheme() {
 }
 
 function setTab(tab) {
-    currentTab.value = tab;
-    router.get('/', { tab, game: selectedGameId.value }, { preserveState: true, preserveScroll: true, replace: true });
+    const next = isMobile.value ? 'score' : tab;
+    currentTab.value = next;
+    router.get('/', { tab: next, game: selectedGameId.value }, { preserveState: true, preserveScroll: true, replace: true });
+}
+
+function applyMobileLayout(matches) {
+    isMobile.value = matches;
+
+    if (!matches) {
+        return;
+    }
+
+    rouletteFullscreen.value = false;
+
+    if (currentTab.value === 'roulette' || props.tab === 'roulette') {
+        setTab('score');
+    }
+}
+
+function onMobileMediaChange(event) {
+    applyMobileLayout(event.matches);
 }
 
 function rotationToPrizeIndex(index, count, currentRotation) {
@@ -197,13 +226,22 @@ function startSpin() {
     rafId = requestAnimationFrame(animate);
 }
 
-onBeforeUnmount(() => cancelAnimationFrame(rafId));
+onMounted(() => {
+    mobileMedia = window.matchMedia(MOBILE_MEDIA);
+    applyMobileLayout(mobileMedia.matches);
+    mobileMedia.addEventListener('change', onMobileMediaChange);
+});
+
+onBeforeUnmount(() => {
+    cancelAnimationFrame(rafId);
+    mobileMedia?.removeEventListener('change', onMobileMediaChange);
+});
 </script>
 
 <template>
     <div class="min-h-full w-full" style="background: var(--surface); color: var(--text); font-family: Inter, sans-serif">
         <FullscreenRoulette
-            v-if="rouletteFullscreen"
+            v-if="!isMobile && rouletteFullscreen"
             :available-prizes="availablePrizes"
             :participants="participants"
             :spinning="spinning"
@@ -240,7 +278,7 @@ onBeforeUnmount(() => cancelAnimationFrame(rafId));
                     >
                         {{ theme === 'bright' ? '🌙 暗転' : '☀️ 明転' }}
                     </button>
-                    <div class="flex gap-1 rounded-xl p-1" style="background: var(--surface-3)">
+                    <div class="hidden gap-1 rounded-xl p-1 md:flex" style="background: var(--surface-3)">
                         <button
                             type="button"
                             class="rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 sm:px-4 sm:text-sm"
@@ -272,7 +310,7 @@ onBeforeUnmount(() => cancelAnimationFrame(rafId));
 
         <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
             <ScoreTab
-                v-if="currentTab === 'score'"
+                v-if="isMobile || currentTab === 'score'"
                 :games="games"
                 :teams="teams"
                 :score-entries="scoreEntries"

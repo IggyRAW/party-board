@@ -9,6 +9,7 @@ class ScoreEntry extends Model
 {
     protected $fillable = [
         'team_id',
+        'game_id',
         'score',
         'label',
         'scored_at',
@@ -25,5 +26,10 @@ class ScoreEntry extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function game(): BelongsTo
+    {
+        return $this->belongsTo(Game::class);
     }
 }

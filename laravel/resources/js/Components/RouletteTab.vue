@@ -443,8 +443,8 @@ function toggleFinale(prize) {
                         確定
                     </button>
                 </div>
-                <div class="grid gap-2 overflow-y-auto" style="max-height: 360px; grid-template-columns: 1fr 1fr">
-                    <div v-if="participants.length === 0" class="col-span-2">
+                <div class="flex flex-col gap-2 overflow-y-auto" style="max-height: 360px">
+                    <div v-if="participants.length === 0">
                         <EmptyState text="全員当選しました 🎉" />
                     </div>
                     <div

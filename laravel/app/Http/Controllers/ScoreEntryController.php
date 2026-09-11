@@ -13,6 +13,7 @@ class ScoreEntryController extends Controller
     {
         $validated = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'game_id' => ['required', 'integer', 'exists:games,id'],
             'score' => ['required', 'integer'],
             'label' => ['nullable', 'string', 'max:255'],
         ]);
@@ -20,10 +21,11 @@ class ScoreEntryController extends Controller
         $team = Team::query()->findOrFail($validated['team_id']);
         $label = filled($validated['label'] ?? null)
             ? $validated['label']
-            : 'Q'.($team->scoreEntries()->count() + 1);
+            : 'Q'.($team->scoreEntries()->where('game_id', $validated['game_id'])->count() + 1);
 
         ScoreEntry::query()->create([
             'team_id' => $team->id,
+            'game_id' => $validated['game_id'],
             'score' => $validated['score'],
             'label' => $label,
             'scored_at' => now(),
