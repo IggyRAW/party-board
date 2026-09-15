@@ -15,6 +15,7 @@ const BOARD_POLL_PROPS = [
     'prizes',
     'wonPrizeIds',
     'finalePrizeLimit',
+    'finaleHoldUntilRemaining',
     'participants',
     'winHistory',
 ];
@@ -28,6 +29,7 @@ const props = defineProps({
     prizes: { type: Array, required: true },
     wonPrizeIds: { type: Array, required: true },
     finalePrizeLimit: { type: Number, required: true },
+    finaleHoldUntilRemaining: { type: Number, required: true },
     participants: { type: Array, required: true },
     winHistory: { type: Array, required: true },
 });
@@ -112,6 +114,10 @@ function isPrizeWon(prize) {
 const availablePrizes = computed(() => props.prizes.filter((prize) => !isPrizeWon(prize)));
 
 const drawablePrizes = computed(() => {
+    if (props.participants.length <= props.finaleHoldUntilRemaining) {
+        return availablePrizes.value;
+    }
+
     const regular = availablePrizes.value.filter((prize) => !prize.isFinale);
 
     return regular.length > 0 ? regular : availablePrizes.value;
@@ -338,6 +344,7 @@ onBeforeUnmount(() => {
                 :prizes="prizes"
                 :won-prize-ids="wonPrizeIds"
                 :finale-prize-limit="finalePrizeLimit"
+                :finale-hold-until-remaining="finaleHoldUntilRemaining"
                 :available-prizes="availablePrizes"
                 :participants="participants"
                 :spinning="spinning"

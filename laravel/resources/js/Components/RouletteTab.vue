@@ -9,6 +9,7 @@ const props = defineProps({
     prizes: { type: Array, required: true },
     wonPrizeIds: { type: Array, required: true },
     finalePrizeLimit: { type: Number, required: true },
+    finaleHoldUntilRemaining: { type: Number, required: true },
     availablePrizes: { type: Array, required: true },
     participants: { type: Array, required: true },
     spinning: { type: Boolean, required: true },
@@ -273,7 +274,7 @@ function toggleFinale(prize) {
                     style="background: var(--surface-3); border: 1px solid var(--border)"
                 >
                     <p class="text-xs" style="color: var(--text-muted)">
-                        最後に当たる景品（{{ markedFinaleCount }}/{{ finalePrizeLimit }}）
+                        残り{{ finaleHoldUntilRemaining }}人まで当たらない景品（{{ markedFinaleCount }}/{{ finalePrizeLimit }}）
                     </p>
                     <label class="flex items-center gap-1.5 text-xs" style="color: var(--text-muted)">
                         件数
@@ -353,7 +354,7 @@ function toggleFinale(prize) {
                                 type="button"
                                 class="shrink-0 text-sm transition-opacity"
                                 :disabled="isWon(prize) || (!prize.isFinale && markedFinaleCount >= finalePrizeLimit)"
-                                :title="prize.isFinale ? '最後の抽選指定を解除' : '最後に当たる景品に指定'"
+                                :title="prize.isFinale ? '上位景品の指定を解除' : '残り人数が減るまで当たらない上位景品に指定'"
                                 :style="{
                                     color: prize.isFinale ? '#f59e0b' : 'var(--text-faint)',
                                     opacity: isWon(prize) ? 0.35 : 1,
@@ -378,7 +379,7 @@ function toggleFinale(prize) {
                                 class="shrink-0 rounded px-1.5 py-0.5 text-xs"
                                 style="background: rgba(245,158,11,0.15); color: #f59e0b"
                             >
-                                最後に抽選
+                                上位景品
                             </span>
                         </div>
                         <button

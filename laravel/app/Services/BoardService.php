@@ -94,17 +94,25 @@ class BoardService
     }
 
     /**
-     * 現在ホイールに載せてよい未当選景品。
-     * 通常景品が残っている間は、運営指定の上位景品を除外する。
+     * 現在抽選してよい未当選景品。
+     * 残り参加者が閾値より多い間は、運営指定の上位景品を除外する。
+     * 閾値以下になったら、残っている景品すべてからランダムに当たる。
      *
      * @return Collection<int, Prize>
      */
     public function drawablePrizes(): Collection
     {
         $available = Prize::query()->available()->orderBy('id')->get();
-        $regular = $available->where('is_finale', false)->values();
+        $remainingParticipants = Participant::query()->count();
+        $holdUntil = BoardSetting::finaleHoldUntilRemaining();
 
-        return $regular->isNotEmpty() ? $regular : $available->values();
+        if ($remainingParticipants > $holdUntil) {
+            $regular = $available->where('is_finale', false)->values();
+
+            return $regular->isNotEmpty() ? $regular : $available->values();
+        }
+
+        return $available->values();
     }
 
     public function setFinalePrizeLimit(int $limit): void
@@ -139,7 +147,7 @@ class BoardService
 
             if ($marked >= $limit) {
                 throw ValidationException::withMessages([
-                    'is_finale' => "最後に残す景品は{$limit}件までです。",
+                    'is_finale' => "上位景品は{$limit}件までです。",
                 ]);
             }
         }
@@ -159,7 +167,7 @@ class BoardService
 
         if (! $drawableIds->contains($prize->id)) {
             throw ValidationException::withMessages([
-                'prize_id' => 'この景品は、他の景品が当たるまで抽選できません。',
+                'prize_id' => 'この景品は、残り参加者が'.BoardSetting::finaleHoldUntilRemaining().'人以下になるまで抽選できません。',
             ]);
         }
 

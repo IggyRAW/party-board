@@ -50,6 +50,7 @@ class BoardTest extends TestCase
                     'prizes',
                     'wonPrizeIds',
                     'finalePrizeLimit',
+                    'finaleHoldUntilRemaining',
                     'participants',
                     'winHistory',
                 ], function (Assert $reload) use ($entry) {
@@ -192,11 +193,17 @@ class BoardTest extends TestCase
         $this->assertDatabaseCount('prizes', 3);
     }
 
-    public function test_finale_prizes_cannot_be_drawn_while_regular_prizes_remain(): void
+    public function test_finale_prizes_cannot_be_drawn_while_more_than_hold_threshold_remain(): void
     {
+        config(['roulette.finale_hold_until_remaining' => 10]);
+
         $board = app(BoardService::class);
         $board->addNamedRecords('prize', ['通常景品', '上位景品']);
-        $board->addNamedRecords('participant', ['田中 太郎', '鈴木 花子']);
+        $names = [];
+        for ($i = 1; $i <= 11; $i++) {
+            $names[] = '参加者'.$i;
+        }
+        $board->addNamedRecords('participant', $names);
 
         $regular = Prize::query()->where('name', '通常景品')->firstOrFail();
         $finale = Prize::query()->where('name', '上位景品')->firstOrFail();
@@ -212,6 +219,24 @@ class BoardTest extends TestCase
         $this->post('/roulette/spin', ['prize_id' => $regular->id])
             ->assertRedirect();
         $this->assertNotNull($regular->fresh()->won_at);
+    }
+
+    public function test_finale_prizes_can_be_drawn_randomly_once_remaining_reaches_hold_threshold(): void
+    {
+        config(['roulette.finale_hold_until_remaining' => 10]);
+
+        $board = app(BoardService::class);
+        $board->addNamedRecords('prize', ['通常景品', '上位景品']);
+        $names = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $names[] = '参加者'.$i;
+        }
+        $board->addNamedRecords('participant', $names);
+
+        $finale = Prize::query()->where('name', '上位景品')->firstOrFail();
+
+        $this->patch('/prizes/'.$finale->id.'/finale', ['is_finale' => true])
+            ->assertRedirect();
 
         $this->post('/roulette/spin', ['prize_id' => $finale->id])
             ->assertRedirect();

@@ -46,6 +46,7 @@ class BoardState
                 'isFinale' => $prize->is_finale,
             ]),
             'finalePrizeLimit' => BoardSetting::finalePrizeLimit(),
+            'finaleHoldUntilRemaining' => BoardSetting::finaleHoldUntilRemaining(),
             'wonPrizeIds' => Prize::query()->whereNotNull('won_at')->pluck('id')->values(),
             'participants' => Participant::query()->orderBy('id')->get(['id', 'name']),
             'winHistory' => WinRecord::query()->orderBy('id')->get()->map(fn (WinRecord $record) => [

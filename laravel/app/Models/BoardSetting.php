@@ -41,4 +41,9 @@ class BoardSetting extends Model
             config('roulette.finale_prize_limit', 5),
         ));
     }
+
+    public static function finaleHoldUntilRemaining(): int
+    {
+        return max(0, (int) config('roulette.finale_hold_until_remaining', 10));
+    }
 }
