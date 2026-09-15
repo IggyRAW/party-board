@@ -515,7 +515,7 @@ function onSelectTeam(team) {
                                 <span
                                     v-if="filterGame !== 'all' && row.gameName"
                                     class="ml-2 text-xs"
-                                    style="color: var(--text-faint); display: inline-block; max-width: 135px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; vertical-align: bottom;"
+                                    style="color: var(--text-faint); display: inline-block; max-width: 180px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; vertical-align: bottom;"
                                 >
                                     {{ row.gameName }}
                                 </span>
