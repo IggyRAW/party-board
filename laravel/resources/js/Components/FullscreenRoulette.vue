@@ -1,21 +1,18 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { onBeforeUnmount, onMounted } from 'vue';
 import RouletteWheel from './RouletteWheel.vue';
 
-const props = defineProps({
+defineProps({
     availablePrizes: { type: Array, required: true },
     participants: { type: Array, required: true },
     spinning: { type: Boolean, required: true },
     rotation: { type: Number, required: true },
+    canSpin: { type: Boolean, required: true },
     winner: { type: String, default: null },
     lastWin: { type: Object, default: null },
 });
 
 const emit = defineEmits(['spin', 'close']);
-
-const canSpin = computed(
-    () => !props.spinning && props.participants.length > 0 && props.availablePrizes.length > 0,
-);
 
 function onKey(event) {
     if (event.key === 'Escape') {

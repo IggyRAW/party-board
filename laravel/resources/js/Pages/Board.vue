@@ -43,6 +43,8 @@ const spinning = ref(false);
 const rotation = ref(0);
 const winner = ref(null);
 const rouletteFullscreen = ref(false);
+const holdWheelUntilNextSpin = ref(false);
+const wheelPrizes = ref([]);
 
 let spinCurrent = 0;
 let rafId = 0;
@@ -94,24 +96,42 @@ watch(
     },
 );
 
-watch(
-    () => props.winHistory,
-    (history) => {
-        if (!spinning.value && history.length > 0) {
-            winner.value = history[history.length - 1].winner;
-        }
-        if (history.length === 0) {
-            winner.value = null;
-        }
-    },
-    { deep: true },
-);
-
 function isPrizeWon(prize) {
     return prize.isWon || props.wonPrizeIds.includes(prize.id);
 }
 
+function syncWheelPrizes(prizes) {
+    wheelPrizes.value = [...prizes];
+}
+
 const availablePrizes = computed(() => props.prizes.filter((prize) => !isPrizeWon(prize)));
+
+watch(
+    availablePrizes,
+    (prizes) => {
+        if (!holdWheelUntilNextSpin.value) {
+            syncWheelPrizes(prizes);
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.winHistory,
+    (history) => {
+        if (history.length === 0) {
+            winner.value = null;
+            holdWheelUntilNextSpin.value = false;
+            syncWheelPrizes(availablePrizes.value);
+            return;
+        }
+
+        if (!spinning.value) {
+            winner.value = history[history.length - 1].winner;
+        }
+    },
+    { deep: true },
+);
 
 const drawablePrizes = computed(() => {
     if (props.participants.length <= props.finaleHoldUntilRemaining) {
@@ -181,11 +201,16 @@ function rotationToPrizeIndex(index, count, currentRotation) {
 }
 
 function startSpin() {
-    const prizes = availablePrizes.value;
+    holdWheelUntilNextSpin.value = false;
+    syncWheelPrizes(availablePrizes.value);
+
+    const prizes = wheelPrizes.value;
     const pool = drawablePrizes.value;
     if (spinning.value || props.participants.length === 0 || pool.length === 0 || prizes.length === 0) {
         return;
     }
+
+    holdWheelUntilNextSpin.value = true;
 
     const capturedPrizes = [...prizes];
     const wonPrize = pool[Math.floor(Math.random() * pool.length)];
@@ -221,6 +246,7 @@ function startSpin() {
             { prize_id: wonPrize.id },
             {
                 preserveScroll: true,
+                preserveState: true,
                 onSuccess: (page) => {
                     const history = page.props.winHistory ?? [];
                     winner.value = history.length ? history[history.length - 1].winner : null;
@@ -248,10 +274,11 @@ onBeforeUnmount(() => {
     <div class="min-h-full w-full" style="background: var(--surface); color: var(--text); font-family: Inter, sans-serif">
         <FullscreenRoulette
             v-if="!isMobile && rouletteFullscreen"
-            :available-prizes="availablePrizes"
+            :available-prizes="wheelPrizes"
             :participants="participants"
             :spinning="spinning"
             :rotation="rotation"
+            :can-spin="canSpin"
             :winner="winner"
             :last-win="lastWin"
             @spin="startSpin"
@@ -345,7 +372,7 @@ onBeforeUnmount(() => {
                 :won-prize-ids="wonPrizeIds"
                 :finale-prize-limit="finalePrizeLimit"
                 :finale-hold-until-remaining="finaleHoldUntilRemaining"
-                :available-prizes="availablePrizes"
+                :available-prizes="wheelPrizes"
                 :participants="participants"
                 :spinning="spinning"
                 :rotation="rotation"
