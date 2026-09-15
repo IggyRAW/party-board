@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Card from './Card.vue';
 import EmptyState from './EmptyState.vue';
@@ -21,12 +21,13 @@ const scoreLabelInput = ref('');
 const filterGame = ref('all');
 const editingTeamId = ref(null);
 const editingTeamName = ref('');
-const editingEntryId = ref(null);
-const editingEntryScore = ref('');
+const draftScores = ref({});
+const skipScoreBlurId = ref(null);
 const saveFlashId = ref(null);
 const editingLabelId = ref(null);
 const editingLabelText = ref('');
 const rankEmoji = ['🥇', '🥈', '🥉'];
+const scoreFieldEls = {};
 
 const canAddScore = computed(() => scoreInput.value !== '' && !Number.isNaN(Number(scoreInput.value)));
 
@@ -171,34 +172,107 @@ function addScore() {
     );
 }
 
-function commitEntryScore(id) {
-    const value = Number(editingEntryScore.value);
-    if (editingEntryScore.value !== '' && !Number.isNaN(value)) {
-        router.patch(
-            `/score-entries/${id}`,
-            { score: value },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    saveFlashId.value = id;
-                    setTimeout(() => {
-                        saveFlashId.value = null;
-                    }, 1500);
-                },
-            },
-        );
+function scoreDraft(entry) {
+    return Object.hasOwn(draftScores.value, entry.id)
+        ? draftScores.value[entry.id]
+        : String(entry.score);
+}
+
+function setScoreFieldEl(id, el) {
+    if (el) {
+        scoreFieldEls[id] = el;
+    } else {
+        delete scoreFieldEls[id];
     }
-    editingEntryId.value = null;
+}
+
+function onScoreDraftInput(entry, event) {
+    draftScores.value[entry.id] = sanitizeScore(event.target.value);
+}
+
+function onScoreFocus(event) {
+    event.target.select();
+}
+
+function commitEntryScore(id) {
+    const entry = props.scoreEntries.find((item) => item.id === id);
+    const raw = Object.hasOwn(draftScores.value, id)
+        ? draftScores.value[id]
+        : String(entry?.score ?? '');
+    const value = Number(raw);
+
+    if (raw === '' || raw === '-' || Number.isNaN(value)) {
+        delete draftScores.value[id];
+        return;
+    }
+
+    if (entry && entry.score === value) {
+        delete draftScores.value[id];
+        return;
+    }
+
+    router.patch(
+        `/score-entries/${id}`,
+        { score: value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                delete draftScores.value[id];
+                saveFlashId.value = id;
+                setTimeout(() => {
+                    if (saveFlashId.value === id) {
+                        saveFlashId.value = null;
+                    }
+                }, 1500);
+            },
+        },
+    );
+}
+
+function onScoreBlur(id) {
+    if (skipScoreBlurId.value === id) {
+        skipScoreBlurId.value = null;
+        return;
+    }
+
+    commitEntryScore(id);
+}
+
+function focusScoreEntry(entry) {
+    const field = scoreFieldEls[entry.id];
+
+    if (!field || document.activeElement === field) {
+        return;
+    }
+
+    field.focus();
+    field.select();
+}
+
+function onScoreTab(event, entry) {
+    if (event.isComposing) {
+        return;
+    }
+
+    const entries = teamEntriesForSelected();
+    const index = entries.findIndex((item) => item.id === entry.id);
+    const next = entries[event.shiftKey ? index - 1 : index + 1] ?? null;
+
+    if (!next) {
+        return;
+    }
+
+    event.preventDefault();
+    skipScoreBlurId.value = entry.id;
+    commitEntryScore(entry.id);
+    nextTick(() => {
+        focusScoreEntry(next);
+    });
 }
 
 function startLabelEdit(entry) {
     editingLabelId.value = entry.id;
     editingLabelText.value = entry.label ?? '';
-}
-
-function startScoreEdit(entry) {
-    editingEntryId.value = entry.id;
-    editingEntryScore.value = String(entry.score);
 }
 
 function commitLabel(id) {
@@ -414,42 +488,31 @@ function onSelectTeam(team) {
                             >
                                 {{ entry.label || 'ラベル' }}
                             </span>
-                            <span
-                                v-if="saveFlashId === entry.id"
-                                class="text-xs"
-                                style="color: #4ade80; font-family: DM Mono, monospace"
-                            >
-                                保存済み
-                            </span>
                             <input
-                                v-else-if="editingEntryId === entry.id"
-                                v-model="editingEntryScore"
-                                v-focus-select
+                                :ref="(el) => setScoreFieldEl(entry.id, el)"
+                                :value="scoreDraft(entry)"
                                 type="text"
                                 inputmode="numeric"
                                 pattern="-?[0-9]*"
-                                enterkeyhint="done"
-                                class="min-h-9 w-20 shrink-0 rounded border-b bg-transparent px-1 py-1 text-right text-sm outline-none sm:min-h-0 sm:w-16"
-                                style="color: var(--indigo-light); border-color: var(--indigo-light); font-family: DM Mono, monospace"
-                                @input="editingEntryScore = sanitizeScore(editingEntryScore)"
-                                @blur="commitEntryScore(entry.id)"
-                                @keydown.enter="onEnter($event, () => commitEntryScore(entry.id))"
-                                @keydown.escape="editingEntryId = null"
-                            >
-                            <span
-                                v-else
-                                class="cursor-pointer rounded px-2 py-1 text-sm font-bold"
-                                title="タップで編集"
+                                :enterkeyhint="entry.id === teamEntriesForSelected().at(-1)?.id ? 'done' : 'next'"
+                                title="Tabで次のスコアへ"
+                                class="min-h-9 w-20 shrink-0 rounded border-b bg-transparent px-2 py-1 text-right text-sm font-bold outline-none sm:min-h-0 sm:w-16"
                                 :style="{
                                     fontFamily: 'DM Mono, monospace',
-                                    color: entry.score === 0 ? 'var(--text-faint)' : 'var(--indigo-light)',
+                                    color: saveFlashId === entry.id
+                                        ? '#4ade80'
+                                        : Number(scoreDraft(entry) || 0) === 0 ? 'var(--text-faint)' : 'var(--indigo-light)',
+                                    borderColor: 'var(--indigo-light)',
                                 }"
-                                @click="startScoreEdit(entry)"
+                                @focus="onScoreFocus"
+                                @input="onScoreDraftInput(entry, $event)"
+                                @blur="onScoreBlur(entry.id)"
+                                @keydown.enter="onEnter($event, () => commitEntryScore(entry.id))"
+                                @keydown.tab="onScoreTab($event, entry)"
                             >
-                                {{ entry.score.toLocaleString() }}
-                            </span>
                             <button
                                 type="button"
+                                tabindex="-1"
                                 title="削除"
                                 class="ml-1 shrink-0 px-2 py-1 text-sm opacity-40 transition-opacity hover:opacity-100"
                                 style="color: var(--danger)"
