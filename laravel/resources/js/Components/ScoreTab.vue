@@ -3,6 +3,7 @@ import { computed, nextTick, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Card from './Card.vue';
 import EmptyState from './EmptyState.vue';
+import FullscreenCeremony from './FullscreenCeremony.vue';
 
 const props = defineProps({
     games: { type: Array, required: true },
@@ -19,6 +20,7 @@ const teamInput = ref('');
 const scoreInput = ref('');
 const scoreLabelInput = ref('');
 const filterGame = ref('all');
+const showCeremony = ref(false);
 const editingTeamId = ref(null);
 const editingTeamName = ref('');
 const draftScores = ref({});
@@ -303,7 +305,14 @@ function onSelectTeam(team) {
 </script>
 
 <template>
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-[300px_1fr]">
+    <div>
+        <FullscreenCeremony
+            v-if="showCeremony"
+            :rankings="rankingEntries()"
+            @close="showCeremony = false"
+        />
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-[300px_1fr]">
         <div class="flex flex-col gap-5">
             <Card title="ゲーム">
                 <div class="mb-3 flex min-w-0 gap-2">
@@ -526,6 +535,20 @@ function onSelectTeam(team) {
             </Card>
 
             <Card title="ランキング">
+                <template #action>
+                    <button
+                        v-if="filterGame === 'all' && rankingEntries().length > 0"
+                        type="button"
+                        title="全画面表彰式"
+                        class="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors hover:bg-white/10"
+                        style="background: var(--overlay); color: var(--text-subtle); border: 1px solid var(--overlay-border)"
+                        @click="showCeremony = true"
+                    >
+                        <span class="text-xs">⛶</span>
+                        <span>表彰式</span>
+                    </button>
+                </template>
+
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <div class="flex flex-wrap gap-1">
                         <button
@@ -591,5 +614,6 @@ function onSelectTeam(team) {
                 </div>
             </Card>
         </div>
+    </div>
     </div>
 </template>
