@@ -25,6 +25,24 @@ docker compose up --build
 
 初回起動時にマイグレーションと初期データ（クイズバトル / ビンゴ、サンプル景品・参加者）が投入されます。
 
+`.env` が無い環境（新規クローンなど）では、先に `laravel/.env.example` を `laravel/.env` へコピーしてください。`APP_KEY` は空のままで構いません。コンテナ起動時に生成されます。
+
+## ドメインで外部公開する
+
+`docker compose up` は開発モードです。画面の CSS/JS は Vite（5174）から読みます。Cloudflare Tunnel などで公開しているのが 8000 だけだと、ドメイン経由ではアセットが届かず画面が真っ白になります。
+
+公開する前に、リポジトリ直下で次を実行します。
+
+```bash
+docker compose exec vite npm run build
+rm -f laravel/public/hot
+docker compose stop vite
+```
+
+ビルド済みファイルは `8000` から配信されます。`public/hot` が残っていると、また 5174 を見にいくので必ず削除してください。
+
+開発に戻すときは `docker compose start vite` で Vite を起動し直します。
+
 ## よく使うコマンド
 
 ```bash
